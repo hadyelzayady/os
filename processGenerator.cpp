@@ -29,12 +29,12 @@ int main() {
     if (pidclk == 0) {
         execl("./clock.out", "clock.out", NULL);
     } else {
-//        int pidsch=fork();
-//        if(pidsch==0)
-//        {
-//            execl("./sch.out","sch.out",NULL);
-//        }
-//        else{
+       int pidsch=fork();
+       if(pidsch==0)
+       {
+           execl("./sch.out","sch.out",NULL);
+       }
+       else{
         initClk();
         int x = getClk();
         printf("current time is %d\n", x);
