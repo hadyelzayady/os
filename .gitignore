@@ -1,9 +1,42 @@
+
 cmake-build-debug
 Readme.txt
 
 .idea
-clock.out 
+clock.out
 Files.out
-main.out 
+main.out
 sch.out
 processes.txt
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
