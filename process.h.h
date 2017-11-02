@@ -6,10 +6,12 @@
 #define CODE_PROCESS_H_H
 
 struct process {
-    long mtype;
-    int id;
+    long id;
     int arrival;
     int runTime;
     int priority;
+};
+enum algorithm {
+    HPF = 1, RR, SRTF
 };
 #endif //CODE_PROCESS_H_H

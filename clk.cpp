@@ -16,6 +16,8 @@ void cleanup(int x)
   shmctl( shmid,IPC_RMID,NULL);
   printf("Clock terminating \n");
   raise(9);
+    exit(1);
+
 }
 
 /* this file represents the system clock for ease of calculations*/
