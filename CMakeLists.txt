@@ -4,12 +4,13 @@ project(Code)
 set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCE_FILES
-        clk.cpp
-        FilesGenerator.cpp
+        #clk.cpp
+        #FilesGenerator.cpp
         headers.h
-        main.cpp
-        process.cpp
+        #main.cpp
+        # process.cpp
         processGenerator.cpp
-        scheduler.cpp)
+        #scheduler.cpp
+        process.h.h)
 
 add_executable(Code ${SOURCE_FILES})

@@ -5,6 +5,10 @@ This file represents an emulated clock for the simulation purpose only
 it is not a real part of operating system */
 
 #include "headers.h"
+
+#include <iostream>
+
+using namespace std;
 int shmid;
 /*clear the resources before exit*/
 void cleanup(int x)
@@ -42,6 +46,7 @@ int main() {
    {
        sleep(1);
        (*shmaddr)++;
+       cerr << *shmaddr;
    }
 
 }
