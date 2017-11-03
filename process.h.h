@@ -4,7 +4,9 @@
 
 #ifndef CODE_PROCESS_H_H
 #define CODE_PROCESS_H_H
-
+enum status {
+    running, firstRun, paused
+};
 struct process {
     long id;
     int arrival;
@@ -15,7 +17,5 @@ struct process {
 enum algorithm {
     HPF = 1, RR, SRTF
 };
-enum status {
-    running, firstRun, paused
-};
+
 #endif //CODE_PROCESS_H_H

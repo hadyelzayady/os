@@ -75,7 +75,7 @@ int main() {
 
 
     }
-    kill(pidsch, SIGCONT);
+    kill(pidsch, SIGUSR1);
     while (1) {}
 
 
