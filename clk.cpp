@@ -16,7 +16,6 @@ void cleanup(int x)
   shmctl( shmid,IPC_RMID,NULL);
   printf("Clock terminating \n");
   raise(9);
-    exit(1);
 
 }
 
@@ -48,7 +47,7 @@ int main() {
    {
        sleep(1);
        (*shmaddr)++;
-       cerr << *shmaddr;
+       cerr << "clock:" << *shmaddr << endl;
    }
 
 }

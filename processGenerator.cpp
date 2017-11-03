@@ -9,13 +9,12 @@
 using namespace std;
 void ClearResources(int);
 
-
 key_t rdyq;
 
 int main() {
 //
      signal(SIGINT,ClearResources);
-
+    signal(SIGCHLD, ClearResources);
     rdyq = msgget(1, 0644 | IPC_CREAT);       //initializing ready queue;
     //TODO:
     // 1-Ask the user about the chosen scheduling Algorithm and its parameters if exists.
@@ -27,17 +26,17 @@ int main() {
 //     2-Initiate and create Scheduler and Clock processes.
 ////     3-use this function after creating clock process to initialize clock
     int pidclk = fork();
-
+    int pidsch;
     if (pidclk == 0) {
 
         execl("./clock.out", "clock.out", NULL);
 
 
     } else {
-        sleep(1);
+        //sleep(1);
         initClk();
 
-        int pidsch = fork();
+        pidsch = fork();
         if (pidsch == 0) {
             execl("./sch.out", "sch.out", algo.c_str(), (char *) 0);
         } else {
@@ -45,7 +44,6 @@ int main() {
             printf("current time is %d\n", x);
             vector<process> processesData;
             readFile(processesData);
-            cout << processesData.size();
             int firstArriveIndex = 0;
             while (firstArriveIndex < processesData.size()) {
                 while (firstArriveIndex < processesData.size() && processesData[firstArriveIndex].arrival <= getClk()) {
@@ -75,7 +73,12 @@ int main() {
 
 //    6-clear clock resources
 
+
     }
+    kill(pidsch, SIGCONT);
+    while (1) {}
+
+
 
 }
 
@@ -83,7 +86,8 @@ void ClearResources(int)
 {
     //TODO: it clears all resources in case of interruption
     msgctl(rdyq, IPC_RMID, (struct msqid_ds *) 0);
-//    destroyClk(true);
+    destroyClk(true);
+    exit(0);
 
 
 }
