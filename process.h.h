@@ -8,11 +8,15 @@ enum status {
     running, firstRun, paused
 };
 struct process {
-    long id;
+    long pid;
+    int id;
     int arrival;
     int runTime;
+    int execTime;
+    int remainTime;
+    int waitingTime;
     int priority;
-    int stat;
+    status stat;
 };
 enum algorithm {
     HPF = 1, RR, SRTF

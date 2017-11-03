@@ -45,16 +45,22 @@ int main() {
             vector<process> processesData;
             readFile(processesData);
             int firstArriveIndex = 0;
+            int prevclk = 0;
             while (firstArriveIndex < processesData.size()) {
-                while (firstArriveIndex < processesData.size() && processesData[firstArriveIndex].arrival <= getClk()) {
-                    int send = msgsnd(rdyq, &processesData[firstArriveIndex],
-                                      sizeof(process) - sizeof(long),
-                                      !IPC_NOWAIT);
-                    if (send == -1)
-                        cout << "error in sending\n";
-                    firstArriveIndex++;
+                if (prevclk != getClk()) {
+                    while (firstArriveIndex < processesData.size() &&
+                           processesData[firstArriveIndex].arrival <= getClk()) {
+                        int send = msgsnd(rdyq, &processesData[firstArriveIndex],
+                                          sizeof(process) - sizeof(long),
+                                          !IPC_NOWAIT);
+                        cerr << getClk() << endl;
+                        if (send == -1)
+                            cout << "error in sending\n";
+                        firstArriveIndex++;
 
+                    }
                 }
+                prevclk = getClk();
 
 
             }
