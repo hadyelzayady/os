@@ -25,8 +25,8 @@ void run_next() {
         else {
             p.id = pid;
         }
-    } else {
-        cerr << "continue process:";
+    } else if (p.stat == paused) {
+        cerr << "continue process:" << p.id << endl;
         kill(p.id, SIGCONT);//continue the process
     }
     p.stat = running;
@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
     initClk();
     int rec_val = -1;
     key_t rdyq = msgget(1, 0644);
-    key_t pid;
+//    key_t pid;
     int current_rt;
     int i = 0;
     signal(SIGCHLD, remove_process);
@@ -77,22 +77,31 @@ int main(int argc, char* argv[]) {
                 process &current_proc = ps.back();
                 current_proc.runTime = ps.back().runTime - (getClk() - start_exec_time);
             }
-            if (ps.empty() || p.runTime < ps.back().runTime)//remaining time
+            if (ps.empty() || p.runTime <= ps.back().runTime)//remaining time
             {
-                p.stat = running;//running
                 if (!ps.empty())
-                    stop_current();
-
-                pid = fork();
-                if (pid != 0)//scheduler
                 {
+                    process &p2 = ps.back();
+                    p2.stat = paused;
+                    cout << "stop process in sch: " << "rt:" << ps.back().runTime << " " << p2.id << endl;
+                    kill(p2.id, SIGSTOP);
+                }
+
+                key_t pid = fork();
+                if (pid == 0) {//child
+                    execl("./process.out", "process.out&", to_string(p.runTime).c_str(), (char *) 0);
+
+                } else if (pid != -1) {
+                    cerr << p.runTime << endl;
+                    p.stat = running;//running
                     start_exec_time = getClk();
                     p.id = pid;
                     ps.push_back(p);
 
                 } else {
-                    execl("./process.out", "process.out", to_string(p.runTime).c_str(), (char *) 0);
+                    cerr << "error in fork\n";
                 }
+
 
             } else {
                 p.stat = firstRun;//not run yes;
@@ -102,7 +111,6 @@ int main(int argc, char* argv[]) {
 
         } else {
         }
-
     }
     while (!ps.empty()) {}
     destroyClk(false);

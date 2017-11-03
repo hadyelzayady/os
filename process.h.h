@@ -8,7 +8,8 @@ enum status {
     running, firstRun, paused
 };
 struct process {
-    long id;
+    long mtyope;
+    int id;
     int arrival;
     int runTime;
     int priority;
