@@ -40,14 +40,18 @@ void run_next() {
     p.status = running;
 }
 
+int TotalRT = 0;
 int WTASum = 0;
 int WaitintSum = 0;
+vector<double> WTAS;
 void remove_process(int) {
     int stat_loc;
     int pid_wait = wait(&stat_loc);
     if (WIFEXITED(stat_loc))//exit code form child 1
     {
         process &p = ps.back();
+        TotalRT += p.runTime;
+        WTAS.push_back((double) round((((double) (getClk() - p.arrival) / p.runTime) * 100)) / 100);
         scheduler_log << "At time " << getClk() << " process " << p.id << " finished arr " << p.arrival << " Total "
                       << p.runTime << " remain 0" << " wait " << p.waitingTime << " TA " << getClk() - p.arrival
                       << " WTA " << (double) round((((double) (getClk() - p.arrival) / p.runTime) * 100)) / 100 << endl;
@@ -57,6 +61,7 @@ void remove_process(int) {
              << getClk() - p.arrival << " WTA " << (double) (getClk() - p.arrival) / p.runTime << endl;
         ps.pop_back();
         run_next();
+
     }
 }
 
@@ -149,8 +154,15 @@ int main(int argc, char* argv[]) {
     while (!ps.empty()) {}
     scheduler_log.close();
     ofstream scheduler_perform("scheduler_perform.txt");
-    scheduler_perform << "CPU utilization=" << endl << "Avg WTA = " << (double) WTASum / countofProc << endl
-                      << "Avg Waiting= " << (double) WaitintSum / countofProc << endl << "Std WTA=" << endl;
+    double AWTA = (double) WTASum / countofProc;
+    scheduler_perform << "CPU utilization=" << (double) TotalRT / getClk() << endl << "Avg WTA = " << AWTA << endl
+                      << "Avg Waiting= " << (double) WaitintSum / countofProc << endl;
+    double sum = 0;
+    for (int j = 0; j < WTAS.size(); ++j) {
+        sum += (WTAS[i] - AWTA) * (WTAS[i] - AWTA);
+    }
+
+    scheduler_perform << "Std WTA=" << sqrt((double) sum / countofProc);
     scheduler_perform.close();
     destroyClk(false);
     //upon termination release clock
