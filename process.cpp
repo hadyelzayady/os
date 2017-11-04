@@ -17,13 +17,13 @@ int main(int agrc, char* argv[]) {
 
     //if you need to use the emulated clock uncomment the following line
     //initClk();
-    cout << "process started:" << getpid() << endl;
+//    cout << "process started:" << getpid() << endl;
     //TODO: it needs to get the remaining time from somewhere
     remainingtime = atoi(argv[1]);
     while(remainingtime>0) {
        sleep(1);
        remainingtime--;
-        cout << "process: " << getpid() << "  " << remainingtime << endl;
+//        cout << "process: " << getpid() << "  " << remainingtime << endl;
     }
     kill(getppid(), SIGUSR2);
     //if you need to use the emulated clock uncomment the following line

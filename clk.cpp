@@ -47,7 +47,7 @@ int main() {
    {
        sleep(1);
        (*shmaddr)++;
-       cerr << "clock:" << *shmaddr << endl;
+//       cerr << "clock:" << *shmaddr << endl;
    }
 
 }

@@ -21,7 +21,7 @@ void run_next() {
     process &p = ps.back();
     start_exec_time = getClk();
     p.waitingTime += getClk() - p.stop;
-    if (p.stat == firstRun) {
+    if (p.status == firstRun) {
         key_t pid = fork();
         if (pid == 0)//child
         {
@@ -37,7 +37,7 @@ void run_next() {
         cerr << "continue process:" << p.id;
         kill(p.pid, SIGCONT);//continue the process
     }
-    p.stat = running;
+    p.status = running;
 }
 
 int WTASum = 0;
@@ -62,7 +62,7 @@ void remove_process(int) {
 
 void stop_current() {
     process &p = ps.back();
-    p.stat = paused;
+    p.status = paused;
     p.stop = getClk();
     scheduler_log << "At time " << getClk() << " process " << p.id << " stopped arr " << p.arrival << " Total "
                   << p.runTime << " remain " << p.remainTime << " wait " << p.waitingTime << endl;
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
             if (ps.empty() || p.remainTime <
                               ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
             {
-                p.stat = running;//running
+                p.status = running;//running
                 if (!ps.empty())
                     stop_current();
 
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
             } else {
                 if (p.remainTime == ps.back().remainTime) {
                     p.stop = getClk();
-                    p.stat = firstRun;//not run yes;
+                    p.status = firstRun;//not run yes;
                     //insert before the current proc because sort will put it u=in the back
                     process current = ps.back();
                     ps.pop_back();
@@ -137,7 +137,7 @@ int main(int argc, char* argv[]) {
                     cout << ps.back().id << endl;
                 } else {
                     p.stop = getClk();
-                    p.stat = firstRun;//not run yes;
+                    p.status = firstRun;//not run yes;
                     ps.push_back(p);
                     sort(ps.begin(), ps.end(), compare);
                 }
@@ -145,6 +145,7 @@ int main(int argc, char* argv[]) {
 
         }
     }
+
     while (!ps.empty()) {}
     scheduler_log.close();
     ofstream scheduler_perform("scheduler_perform.txt");

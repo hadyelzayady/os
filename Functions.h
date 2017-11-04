@@ -13,6 +13,7 @@ void readFile(vector<process> &p) {
     getline(inFile, s);
     struct process pc;
     while (inFile >> pc.id >> pc.arrival >> pc.runTime >> pc.priority) {
+        pc.status = firstRun;
         p.push_back(pc);
     }
 }
