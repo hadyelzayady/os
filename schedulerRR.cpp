@@ -8,9 +8,17 @@
 
 using namespace std;
 int pid; //should it be inside;
+int flag = 0;      //indication if there are other processes to send;
+
+void changeflag(int) {
+    flag = 1;
+}
+
+
 
 int main(int argc, char *argv[]) {
     signal(SIGUSR2, SIG_IGN);
+    signal(SIGUSR1, changeflag);
     cout << "Hello from sch" << endl;
     int time;
     int stat;   //status of receiving from process generator;
@@ -19,7 +27,7 @@ int main(int argc, char *argv[]) {
     cout << "Qntm " << quantum << endl;
     int qtm = 0;        //actual qtm;
     int remstat = 1;   //process needs another quantum?
-    int flag = 0;      //indication if there are other processes to send;
+
     int rdyq;
     string remtime;
     struct process message;
@@ -60,13 +68,8 @@ int main(int argc, char *argv[]) {
                 //cout<<"sch receiving "<<stat<<endl;
             }
             if (stat == -1) qtm = 0;
-            if (stat != -1) {    //here
-                if (message.runTime == -1) {
-                    flag = 1;
-                    qtm = 0;
-                }
-            }       //and here
-            if (stat != -1 && message.runTime != -1) {
+            //and here
+            if (stat != -1) {
                 //if(message.runTime>quantum) //should we add status of process (blocked etc in it)
                 // { message.runtime-=quantum;
                 // msgsnd(rdyq,&message, sizeof(message)-sizeof(long),!IPC_NOWAIT);

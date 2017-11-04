@@ -93,11 +93,13 @@ int main() {
             }
 
 
-            struct process pro;
+            /*struct process pro;
             pro.runTime = -1;
             int z = msgsnd(rdyq, &pro, sizeof(pro) - sizeof(long), !IPC_NOWAIT);
             if (z == -1) perror("error in send term");
-            cout << "main is finishing with stat " << z << endl;
+            cout << "main is finishing with stat " << z << endl;*/
+
+            kill(pidsch, SIGUSR1);
 
         }
     }
