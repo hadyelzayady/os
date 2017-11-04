@@ -92,60 +92,57 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR2, remove_process);
     signal(SIGUSR1, changeflag);
     int prevclk = 0;//to start loop firt time
-    if(argv[1]=="3")
-    {
-        while (flag) {
-            process p;
-            rec_val = (int) msgrcv(rdyq, &p, sizeof(p) - sizeof(long), 0, !IPC_NOWAIT);
-            if (rec_val != -1) {
-                p.remainTime = p.runTime;
-                p.waitingTime = 0;
-                countofProc++;
-                cerr << "\nreceived\n" << getClk();/*<<p.runTime<<"  rem time in orev:"<<(getClk() - start_exec_time)*/;
-                if (!ps.empty()) {
-                    process &current_proc = ps.back();
-                    current_proc.remainTime = ps.back().remainTime - (getClk() - start_exec_time);
-                }
-                if (ps.empty() || p.remainTime <
-                                  ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
+    while (flag) {
+        process p;
+        rec_val = (int) msgrcv(rdyq, &p, sizeof(p) - sizeof(long), 0, !IPC_NOWAIT);
+        if (rec_val != -1) {
+            p.remainTime = p.runTime;
+            p.waitingTime = 0;
+            countofProc++;
+            cerr << "\nreceived\n" << getClk();/*<<p.runTime<<"  rem time in orev:"<<(getClk() - start_exec_time)*/;
+            if (!ps.empty()) {
+                process &current_proc = ps.back();
+                current_proc.remainTime = ps.back().remainTime - (getClk() - start_exec_time);
+            }
+            if (ps.empty() || p.remainTime <
+                              ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
+            {
+                p.stat = running;//running
+                if (!ps.empty())
+                    stop_current();
+
+                pid = fork();
+                if (pid != 0)//scheduler
                 {
-                    p.stat = running;//running
-                    if (!ps.empty())
-                        stop_current();
-
-                    pid = fork();
-                    if (pid != 0)//scheduler
-                    {
-                        start_exec_time = getClk();
-                        p.pid = pid;
-                        ps.push_back(p);
-                        scheduler_log << "At time " << getClk() << " process " << p.id << " started arr " << p.arrival
-                                      << " Total " << p.runTime << " remain " << p.remainTime << " wait 0" << endl;
-
-                    } else {
-
-                        execl("./process.out", "process.out", to_string(p.runTime).c_str(), (char *) 0);
-                    }
+                    start_exec_time = getClk();
+                    p.pid = pid;
+                    ps.push_back(p);
+                    scheduler_log << "At time " << getClk() << " process " << p.id << " started arr " << p.arrival
+                                  << " Total " << p.runTime << " remain " << p.remainTime << " wait 0" << endl;
 
                 } else {
-                    if (p.remainTime == ps.back().remainTime) {
-                        p.stop = getClk();
-                        p.stat = firstRun;//not run yes;
-                        //insert before the current proc because sort will put it u=in the back
-                        process current = ps.back();
-                        ps.pop_back();
-                        ps.push_back(p);
-                        ps.push_back(current);
-                        cout << ps.back().id << endl;
-                    } else {
-                        p.stop = getClk();
-                        p.stat = firstRun;//not run yes;
-                        ps.push_back(p);
-                        sort(ps.begin(), ps.end(), compare);
-                    }
+
+                    execl("./process.out", "process.out", to_string(p.runTime).c_str(), (char *) 0);
                 }
 
+            } else {
+                if (p.remainTime == ps.back().remainTime) {
+                    p.stop = getClk();
+                    p.stat = firstRun;//not run yes;
+                    //insert before the current proc because sort will put it u=in the back
+                    process current = ps.back();
+                    ps.pop_back();
+                    ps.push_back(p);
+                    ps.push_back(current);
+                    cout << ps.back().id << endl;
+                } else {
+                    p.stop = getClk();
+                    p.stat = firstRun;//not run yes;
+                    ps.push_back(p);
+                    sort(ps.begin(), ps.end(), compare);
+                }
             }
+
         }
     }
     while (!ps.empty()) {}
