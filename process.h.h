@@ -16,6 +16,7 @@ struct process {
     int remainTime;
     int waitingTime;
     int priority;
+    int stop;
     status stat;
 };
 enum algorithm {

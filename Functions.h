@@ -12,8 +12,6 @@ void readFile(vector<process> &p) {
     string s;
     getline(inFile, s);
     struct process pc;
-    inFile >> pc.id >> pc.arrival >> pc.runTime >> pc.priority;
-    cout << pc.id << " " << pc.priority;
     while (inFile >> pc.id >> pc.arrival >> pc.runTime >> pc.priority) {
         p.push_back(pc);
     }

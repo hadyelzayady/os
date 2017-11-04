@@ -45,9 +45,7 @@ int main() {
             vector<process> processesData;
             readFile(processesData);
             int firstArriveIndex = 0;
-            int prevclk = 0;
             while (firstArriveIndex < processesData.size()) {
-                if (prevclk != getClk()) {
                     while (firstArriveIndex < processesData.size() &&
                            processesData[firstArriveIndex].arrival <= getClk()) {
                         int send = msgsnd(rdyq, &processesData[firstArriveIndex],
@@ -60,9 +58,6 @@ int main() {
 
                     }
                 }
-                prevclk = getClk();
-
-
             }
         }
 
@@ -80,7 +75,6 @@ int main() {
 //    6-clear clock resources
 
 
-    }
     kill(pidsch, SIGUSR1);
     while (1) {}
 
