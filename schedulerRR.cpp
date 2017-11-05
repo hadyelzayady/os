@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 #include <math.h>
-
+#include <iomanip>
 using namespace std;
 int pid; //should it be inside;
 int flag = 0;      //indication if there are other processes to send;
@@ -31,11 +31,11 @@ int findind(int pid) {
 }
 
 
-void chgstatus(int pid, bool type)  //type=0--->run else paused
+void chgstatus(int pid, bool type)  //type=0--->run else waiting
 {
     int place = findind(pid);
     if (!type) proctable[place].status = running;
-    else proctable[place].status = paused;
+    else proctable[place].status = waiting;
 }
 
 void chgtime()    //decrease remaining time || increase waiting time
@@ -153,7 +153,7 @@ int main(int argc, char *argv[]) {
                 }
                 if (qtm == 0 && remstat != 0) {
                     cout << "sch will send at time " << time << endl;
-                    message.status = paused;
+                    message.status = waiting;
                     chgstatus(message.pid, 1);
                     message.runTime -= quantum;
                     int y = msgsnd(rdyq, &message, sizeof(message) - sizeof(long), !IPC_NOWAIT);

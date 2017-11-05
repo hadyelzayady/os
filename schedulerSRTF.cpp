@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <math.h>
+#include <iomanip>      // std::setprecision
 using namespace std;
 
 bool compare(const process &lhs, const process &rhs) {
@@ -41,7 +42,7 @@ void run_next() {
 }
 
 int TotalRT = 0;
-int WTASum = 0;
+double WTASum = 0;
 int WaitintSum = 0;
 vector<double> WTAS;
 void remove_process(int) {
@@ -52,9 +53,10 @@ void remove_process(int) {
         process &p = ps.back();
         TotalRT += p.runTime;
         WTAS.push_back((double) round((((double) (getClk() - p.arrival) / p.runTime) * 100)) / 100);
-        scheduler_log << "At time " << getClk() << " process " << p.id << " finished arr " << p.arrival << " Total "
+        scheduler_log << fixed << setprecision(2) << "At time " << getClk() << " process " << p.id << " finished arr "
+                      << p.arrival << " Total "
                       << p.runTime << " remain 0" << " wait " << p.waitingTime << " TA " << getClk() - p.arrival
-                      << " WTA " << (double) round((((double) (getClk() - p.arrival) / p.runTime) * 100)) / 100 << endl;
+                      << " WTA " << ((getClk() - p.arrival) / (double) p.runTime) << endl;
         WTASum += (double) (getClk() - p.arrival) / p.runTime;
         WaitintSum += p.waitingTime;
         cout << "exit process with arrival:" << ps.back().arrival << " and id " << ps.back().id << " TA "
@@ -67,7 +69,7 @@ void remove_process(int) {
 
 void stop_current() {
     process &p = ps.back();
-    p.status = paused;
+    p.status = waiting;
     p.stop = getClk();
     scheduler_log << "At time " << getClk() << " process " << p.id << " stopped arr " << p.arrival << " Total "
                   << p.runTime << " remain " << p.remainTime << " wait " << p.waitingTime << endl;
@@ -109,7 +111,7 @@ int main(int argc, char* argv[]) {
                 process &current_proc = ps.back();
                 current_proc.remainTime = ps.back().remainTime - (getClk() - start_exec_time);
             }
-            if (ps.empty() || p.remainTime <
+            if (ps.empty() || p.remainTime <=
                               ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
             {
                 p.status = running;//running
@@ -131,21 +133,21 @@ int main(int argc, char* argv[]) {
                 }
 
             } else {
-                if (p.remainTime == ps.back().remainTime) {
-                    p.stop = getClk();
-                    p.status = firstRun;//not run yes;
-                    //insert before the current proc because sort will put it u=in the back
-                    process current = ps.back();
-                    ps.pop_back();
-                    ps.push_back(p);
-                    ps.push_back(current);
-                    cout << ps.back().id << endl;
-                } else {
+//                if (p.remainTime == ps.back().remainTime) {
+//                    p.stop = getClk();
+//                    p.status = firstRun;//not run yes;
+//                    //insert before the current proc because sort will put it u=in the back
+//                    process current = ps.back();
+//                    ps.pop_back();
+//                    ps.push_back(p);
+//                    ps.push_back(current);
+//                    cout << ps.back().id << endl;
+//                } else {
                     p.stop = getClk();
                     p.status = firstRun;//not run yes;
                     ps.push_back(p);
                     sort(ps.begin(), ps.end(), compare);
-                }
+//                }
             }
 
         }
@@ -153,9 +155,11 @@ int main(int argc, char* argv[]) {
 
     while (!ps.empty()) {}
     scheduler_log.close();
-    ofstream scheduler_perform("scheduler_perform.txt");
+    ofstream scheduler_perform("scheduler.perf");
     double AWTA = (double) WTASum / countofProc;
-    scheduler_perform << "CPU utilization=" << (double) TotalRT / getClk() << endl << "Avg WTA = " << AWTA << endl
+    cout << AWTA;
+    scheduler_perform << "CPU utilization=" << fixed << setprecision(2) << ((double) TotalRT / getClk()) * 100 << "%"
+                      << endl << "Avg WTA = " << AWTA << endl
                       << "Avg Waiting= " << (double) WaitintSum / countofProc << endl;
     double sum = 0;
     for (int j = 0; j < WTAS.size(); ++j) {

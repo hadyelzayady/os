@@ -16,16 +16,23 @@ int main() {
 
     //TODO:
     // 1-Ask the user about the chosen scheduling Algorithm and its parameters if exists.
-    cout << "Enter desired algorithm(RR,HPF,SRTN,Exit)->(1,2,3,0): ";
+    cout << "Enter desired algorithm(HPF,RR,SRTN,Exit)->(1,2,3,0): ";
     int algo;
     cin >> algo;
     if (algo > 3 || algo <= 0)
         return 0;
+    string quantom;
+    if (algo == RR) {
+        cout << "enter quantum: ";
+        cin >> quantom;
+        while (atoi(quantom.c_str()) < 1) {
+            cout << "enter quantum: ";
+            cin >> quantom;
+        }
+    }
     signal(SIGINT, ClearResources);
     signal(SIGCHLD, ClearResources);
     rdyq = msgget(1, 0644 | IPC_CREAT);       //initializing ready queue;
-//     2-Initiate and create Scheduler and Clock processes.
-////     3-use this function after creating clock process to initialize clock
     int pidclk = fork();
     if (pidclk == 0) {
 
@@ -40,13 +47,6 @@ int main() {
             execl("./schHPF.out", "sch.out", NULL);
 
     } else if (algo == RR) {
-        string quantom;
-        cout << "enter quantum: ";
-        cin >> quantom;
-        while (atoi(quantom.c_str()) < 1) {
-            cout << "enter quantum: ";
-            cin >> quantom;
-        }
 
         pidsch = fork();
         if (pidsch == 0) {
@@ -79,19 +79,6 @@ int main() {
             }
 
 
-
-
-    ///Toget time use the following function
-
-//    TODO:  Generation Main Loop
-//    4-Creating a data structure for process  and  provide it with its parameters
-//    5-Send the information to  the scheduler at the appropriate time
-//    (only when a process arrives) so that it will be put it in its turn.
-
-
-//    6-clear clock resources
-
-
     kill(pidsch, SIGUSR1);
     while (1) {}
 
@@ -100,7 +87,6 @@ int main() {
 
 void ClearResources(int)
 {
-    //TODO: it clears all resources in case of interruption
     msgctl(rdyq, IPC_RMID, (struct msqid_ds *) 0);
     destroyClk(true);
     exit(0);

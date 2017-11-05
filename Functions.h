@@ -14,6 +14,7 @@ void readFile(vector<process> &p) {
     struct process pc;
     while (inFile >> pc.id >> pc.arrival >> pc.runTime >> pc.priority) {
         pc.status = firstRun;
+        pc.remainTime = pc.runTime;
         p.push_back(pc);
     }
 }
