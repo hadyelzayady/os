@@ -23,7 +23,7 @@ int main(int agrc, char* argv[]) {
     while(remainingtime>0) {
        sleep(1);
        remainingtime--;
-//        cout << "process: " << getpid() << "  " << remainingtime << endl;
+        cout << "process: " << getpid() << "  " << remainingtime << endl;
     }
     kill(getppid(), SIGUSR2);
     exit(getpid());

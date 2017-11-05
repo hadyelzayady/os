@@ -101,7 +101,7 @@ int main(int argc, char* argv[]) {
     int prevclk = 0;//to start loop firt time
     while (flag) {
         process p;
-        rec_val = (int) msgrcv(rdyq, &p, sizeof(p) - sizeof(long), 0, !IPC_NOWAIT);
+        rec_val = msgrcv(rdyq, &p, sizeof(process) - sizeof(long), 0, !IPC_NOWAIT);
         if (rec_val != -1) {
             p.remainTime = p.runTime;
             p.waitingTime = 0;
@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
                 process &current_proc = ps.back();
                 current_proc.remainTime = ps.back().remainTime - (getClk() - start_exec_time);
             }
-            if (ps.empty() || p.remainTime <=
+            if (ps.empty() || p.remainTime <
                               ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
             {
                 p.status = running;//running
@@ -133,24 +133,24 @@ int main(int argc, char* argv[]) {
                 }
 
             } else {
-//                if (p.remainTime == ps.back().remainTime) {
-//                    p.stop = getClk();
-//                    p.status = firstRun;//not run yes;
-//                    //insert before the current proc because sort will put it u=in the back
-//                    process current = ps.back();
-//                    ps.pop_back();
-//                    ps.push_back(p);
-//                    ps.push_back(current);
-//                    cout << ps.back().id << endl;
-//                } else {
+                if (p.remainTime == ps.back().remainTime) {
+                    p.stop = getClk();
+                    p.status = firstRun;//not run yes;
+                    //insert before the current proc because sort will put it u=in the back
+                    process current = ps.back();
+                    ps.pop_back();
+                    ps.push_back(p);
+                    ps.push_back(current);
+                    cout << ps.back().id << endl;
+                } else {
                     p.stop = getClk();
                     p.status = firstRun;//not run yes;
                     ps.push_back(p);
                     sort(ps.begin(), ps.end(), compare);
-//                }
+                }
             }
 
-        }
+        } else cerr << "error in receive \n";
     }
 
     while (!ps.empty()) {}
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
 
     scheduler_perform << "Std WTA=" << sqrt((double) sum / countofProc);
     scheduler_perform.close();
-    destroyClk(false);
+    destroyClk(true);
     //upon termination release clock
 //    of.close();
     exit(0);

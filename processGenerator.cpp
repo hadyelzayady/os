@@ -44,39 +44,39 @@ int main() {
     if (algo == HPF) {
         pidsch = fork();
         if (pidsch == 0)
-            execl("./schHPF.out", "sch.out", NULL);
+            execl("./schHPF.out", "schHPF.out", NULL);
 
     } else if (algo == RR) {
 
         pidsch = fork();
         if (pidsch == 0) {
-            execl("./schRR.out", "sch.out", quantom.c_str(), (char *) 0);
+            execl("./schRR.out", "schRR.out", quantom.c_str(), (char *) 0);
         }
     } else {
         pidsch = fork();
         if (pidsch == 0)
-            execl("./schSRTF.out", "sch.out", NULL);
+            execl("./schSRTF.out", "schSRTF.out", NULL);
     }
 
     initClk();
     int x = getClk();
-            printf("current time is %d\n", x);
-            vector<process> processesData;
-            readFile(processesData);
-            int firstArriveIndex = 0;
-            while (firstArriveIndex < processesData.size()) {
-                while (firstArriveIndex < processesData.size() &&
-                       processesData[firstArriveIndex].arrival <= getClk()) {
-                    int send = msgsnd(rdyq, &processesData[firstArriveIndex],
-                                      sizeof(process) - sizeof(long),
-                                      !IPC_NOWAIT);
-                    cerr << getClk() << endl;
-                    if (send == -1)
-                        cout << "error in sending\n";
-                    firstArriveIndex++;
+    printf("current time is %d\n", x);
+    vector<process> processesData;
+    readFile(processesData);
+    int firstArriveIndex = 0;
+    while (firstArriveIndex < processesData.size()) {
+        while (firstArriveIndex < processesData.size() &&
+               processesData[firstArriveIndex].arrival <= getClk()) {
+            int send = msgsnd(rdyq, &processesData[firstArriveIndex],
+                              sizeof(process) - sizeof(long),
+                              !IPC_NOWAIT);
+            cerr << getClk() << endl;
+            if (send == -1)
+                cout << "error in sending\n";
+            firstArriveIndex++;
 
-                }
-            }
+        }
+    }
 
 
     kill(pidsch, SIGUSR1);
