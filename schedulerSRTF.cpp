@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
     signal(SIGUSR2, remove_process);
     signal(SIGUSR1, changeflag);
     int prevclk = 0;//to start loop firt time
-    while (flag) {
+    while (flag || rec_val != -1) {
         process p;
         rec_val = (int) msgrcv(rdyq, &p, sizeof(p) - sizeof(long), 0, !IPC_NOWAIT);
         if (rec_val != -1) {
@@ -133,21 +133,21 @@ int main(int argc, char* argv[]) {
                 }
 
             } else {
-//                if (p.remainTime == ps.back().remainTime) {
-//                    p.stop = getClk();
-//                    p.status = firstRun;//not run yes;
-//                    //insert before the current proc because sort will put it u=in the back
-//                    process current = ps.back();
-//                    ps.pop_back();
-//                    ps.push_back(p);
-//                    ps.push_back(current);
-//                    cout << ps.back().id << endl;
-//                } else {
+                if (p.remainTime == ps.back().remainTime) {
+                    p.stop = getClk();
+                    p.status = firstRun;//not run yes;
+                    //insert before the current proc because sort will put it u=in the back
+                    process current = ps.back();
+                    ps.pop_back();
+                    ps.push_back(p);
+                    ps.push_back(current);
+                    cout << ps.back().id << endl;
+                } else {
                     p.stop = getClk();
                     p.status = firstRun;//not run yes;
                     ps.push_back(p);
                     sort(ps.begin(), ps.end(), compare);
-//                }
+                }
             }
 
         }

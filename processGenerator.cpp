@@ -41,22 +41,22 @@ int main() {
 
     }
     int pidsch;
-    if (algo == HPF) {
+//    if (algo == HPF) {
+//        pidsch = fork();
+//        if (pidsch == 0)
+//            execl("./schHPF.out", "sch.out", NULL);
+//
+//    } else if (algo == RR) {
+//
+//        pidsch = fork();
+//        if (pidsch == 0) {
+//            execl("./schRR.out", "sch.out", quantom.c_str(), (char *) 0);
+//        }
+//    } else {
         pidsch = fork();
         if (pidsch == 0)
-            execl("./schHPF.out", "sch.out", NULL);
-
-    } else if (algo == RR) {
-
-        pidsch = fork();
-        if (pidsch == 0) {
-            execl("./schRR.out", "sch.out", quantom.c_str(), (char *) 0);
-        }
-    } else {
-        pidsch = fork();
-        if (pidsch == 0)
-            execl("./schSRTF.out", "sch.out", NULL);
-    }
+            execl("./schSRTF.out", "schSRTF.out", NULL);
+//    }
 
     initClk();
     int x = getClk();
