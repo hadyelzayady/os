@@ -60,23 +60,24 @@ int main() {
 
     initClk();
     int x = getClk();
-            printf("current time is %d\n", x);
-            vector<process> processesData;
-            readFile(processesData);
-            int firstArriveIndex = 0;
-            while (firstArriveIndex < processesData.size()) {
-                while (firstArriveIndex < processesData.size() &&
-                       processesData[firstArriveIndex].arrival <= getClk()) {
-                    int send = msgsnd(rdyq, &processesData[firstArriveIndex],
-                                      sizeof(process) - sizeof(long),
-                                      !IPC_NOWAIT);
-                    cerr << getClk() << endl;
-                    if (send == -1)
-                        cout << "error in sending\n";
-                    firstArriveIndex++;
+    printf("current time is %d\n", x);
+    vector<process> processesData;
+    readFile(processesData);
+    int firstArriveIndex = 0;
+    while (firstArriveIndex < processesData.size()) {
+        while (firstArriveIndex < processesData.size() &&
+               processesData[firstArriveIndex].arrival <= getClk()) {
+            int send = msgsnd(rdyq, &processesData[firstArriveIndex],
+                              sizeof(process) - sizeof(long),
+                              !IPC_NOWAIT);
+            cerr << processesData[firstArriveIndex].id << endl;
+            cerr << getClk() << endl;
+            if (send == -1)
+                cout << "error in sending\n";
+            firstArriveIndex++;
 
-                }
-            }
+        }
+    }
 
 
     kill(pidsch, SIGUSR1);
