@@ -6,16 +6,19 @@
 #include "Functions.h"
 #include <sys/msg.h>
 #include <string>
+#include <algorithm>
 using namespace std;
 void ClearResources(int);
 
-bool compare(const process &p1, const process &p2) {
+bool compareSRTF(const process &p1, const process &p2) {
     return p1.runTime < p2.runTime && p1.arrival == p2.arrival;
 }
 
-void send(int) {
-
+bool compareHPF(const process &p1, const process &p2) {
+    return p1.priority > p2.priority && p1.arrival == p2.arrival;
 }
+
+
 key_t rdyq;
 
 int main() {
@@ -29,6 +32,8 @@ int main() {
     if (algo > 3 || algo <= 0)
         return 0;
     string quantom;
+    vector<process> processesData;
+    readFile(processesData);
     if (algo == RR) {
         cout << "enter quantum: ";
         cin >> quantom;
@@ -36,6 +41,10 @@ int main() {
             cout << "enter quantum: ";
             cin >> quantom;
         }
+    } else if (algo == HPF) {
+        sort(processesData.begin(), processesData.end(), compareHPF);
+    } else {
+        sort(processesData.begin(), processesData.end(), compareSRTF);
     }
     signal(SIGINT, ClearResources);
     signal(SIGCHLD, ClearResources);
@@ -68,8 +77,7 @@ int main() {
     initClk();
     int x = getClk();
     printf("current time is %d\n", x);
-    vector<process> processesData;
-    readFile(processesData);
+
     int firstArriveIndex = 0;
     while (firstArriveIndex < processesData.size()) {
         while (firstArriveIndex < processesData.size() &&

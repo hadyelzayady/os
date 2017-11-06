@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
             if (ps.empty()) {
                 scheduler_log << "At time " << getClk() << " process " << p.id << " started arr " << p.arrival
                               << " Total "
-                              << p.runTime << " remain" << p.runTime << " wait " << p.waitingTime << endl;
+                              << p.runTime << " remain " << p.runTime << " wait " << p.waitingTime << endl;
                 start_time = getClk();
                 key_t pid = fork();
                 if (pid == 0) {
