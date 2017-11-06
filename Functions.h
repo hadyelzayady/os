@@ -15,6 +15,7 @@ void readFile(vector<process> &p) {
     while (inFile >> pc.id >> pc.arrival >> pc.runTime >> pc.priority) {
         pc.status = firstRun;
         pc.remainTime = pc.runTime;
+        pc.pid = 1;
         p.push_back(pc);
     }
 }

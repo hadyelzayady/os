@@ -88,6 +88,10 @@ void write_log(int) {
 
 }
 
+void start(int) {
+    kill(getppid(), SIGURG);
+
+}
 int main(int argc, char* argv[]) {
     initClk();
     int countofProc = 0;
@@ -98,23 +102,38 @@ int main(int argc, char* argv[]) {
     int i = 0;
     signal(SIGUSR2, remove_process);
     signal(SIGUSR1, changeflag);
+    signal(SIGUNUSED, start);
     int prevclk = 0;//to start loop firt time
+    int sizem = sizeof(process) - sizeof(long);
     while (flag) {
+        vector<process> pp;
         process p;
-        rec_val = msgrcv(rdyq, &p, sizeof(process) - sizeof(long), 0, !IPC_NOWAIT);
-        if (rec_val != -1) {
-            p.remainTime = p.runTime;
+        int i = 0, index;
+        int clk = getClk();
+        while (clk == getClk() && msgrcv(rdyq, &p, sizem, 0, !IPC_NOWAIT) != -1) {
+            p.stop = clk;
+            p.status = firstRun;
+            pp.push_back(p);
+            cerr << p.id << endl;
+            cerr << "sending conf\n" << clk << " " << p.id << endl;
+
+        }
+        cerr << "out of loop\n";
+        int firstwithus = 0;
+        if (pp.size() != 0) {
             p.waitingTime = 0;
-            countofProc++;
+            countofProc += pp.size();
             cerr << "\nreceived\n" << getClk();/*<<p.runTime<<"  rem time in orev:"<<(getClk() - start_exec_time)*/;
             if (!ps.empty()) {
                 process &current_proc = ps.back();
                 current_proc.remainTime = ps.back().remainTime - (getClk() - start_exec_time);
             }
-            if (ps.empty() || p.remainTime <
+            if (ps.empty() || pp[0].runTime <
                               ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
             {
-                p.status = running;//running
+                firstwithus += 1;
+                pp[0].status = running;//running
+                pp[0].stop = 0;
                 if (!ps.empty())
                     stop_current();
 
@@ -122,10 +141,13 @@ int main(int argc, char* argv[]) {
                 if (pid != 0)//scheduler
                 {
                     start_exec_time = getClk();
-                    p.pid = pid;
-                    ps.push_back(p);
-                    scheduler_log << "At time " << getClk() << " process " << p.id << " started arr " << p.arrival
-                                  << " Total " << p.runTime << " remain " << p.remainTime << " wait 0" << endl;
+                    pp[0].pid = pid;
+                    ps.push_back(pp[0]);
+                    scheduler_log << "At time " << getClk() << " process " << pp[0].id << " started arr "
+                                  << pp[0].arrival
+                                  << " Total " << pp[0].runTime << " remain " << pp[0].remainTime
+                                  << " wait 0" << endl;
+
 
                 } else {
 
@@ -133,24 +155,11 @@ int main(int argc, char* argv[]) {
                 }
 
             } else {
-                if (p.remainTime == ps.back().remainTime) {
-                    p.stop = getClk();
-                    p.status = firstRun;//not run yes;
                     //insert before the current proc because sort will put it u=in the back
-                    process current = ps.back();
-                    ps.pop_back();
-                    ps.push_back(p);
-                    ps.push_back(current);
-                    cout << ps.back().id << endl;
-                } else {
-                    p.stop = getClk();
-                    p.status = firstRun;//not run yes;
-                    ps.push_back(p);
-                    sort(ps.begin(), ps.end(), compare);
+                ps.insert(ps.begin(), pp.begin() + firstwithus, pp.end());
+                sort(ps.begin(), ps.end() - 1, compare);
                 }
             }
-
-        } else cerr << "error in receive \n";
     }
 
     while (!ps.empty()) {}

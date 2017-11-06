@@ -6,11 +6,18 @@
 #include "Functions.h"
 #include <sys/msg.h>
 #include <string>
+#include <algorithm>
 using namespace std;
 void ClearResources(int);
 
-key_t rdyq;
+bool compare(const process &p1, const process &p2) {
+    return p1.runTime < p2.runTime && p1.arrival == p2.arrival;
+}
 
+void send(int) {
+
+}
+key_t rdyq;
 int main() {
 //
 
@@ -31,7 +38,8 @@ int main() {
         }
     }
     signal(SIGINT, ClearResources);
-    signal(SIGCHLD, ClearResources);
+//    signal(SIGCHLD, ClearResources);
+    signal(SIGURG, send);
     rdyq = msgget(1, 0644 | IPC_CREAT);       //initializing ready queue;
     int pidclk = fork();
     if (pidclk == 0) {
@@ -62,22 +70,27 @@ int main() {
     int x = getClk();
     printf("current time is %d\n", x);
     vector<process> processesData;
-    readFile(processesData);
     int firstArriveIndex = 0;
+    readFile(processesData);
+    int clk = getClk();
+    sort(processesData.begin(), processesData.end(), compare);
     while (firstArriveIndex < processesData.size()) {
+        clk = getClk();
         while (firstArriveIndex < processesData.size() &&
-               processesData[firstArriveIndex].arrival <= getClk()) {
+               processesData[firstArriveIndex].arrival <= clk) {
+
             int send = msgsnd(rdyq, &processesData[firstArriveIndex],
                               sizeof(process) - sizeof(long),
                               !IPC_NOWAIT);
-            cerr << getClk() << endl;
+
+//            cerr << getClk() << endl;
+//            cerr << "sent\n";
             if (send == -1)
                 cout << "error in sending\n";
             firstArriveIndex++;
 
         }
     }
-
 
     kill(pidsch, SIGUSR1);
     while (1) {}
