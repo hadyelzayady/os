@@ -34,6 +34,10 @@ int main() {
     string quantom;
     vector<process> processesData;
     readFile(processesData);
+    if (processesData.empty()) {
+        return 0;
+    }
+
     if (algo == RR) {
         cout << "enter quantum: ";
         cin >> quantom;
