@@ -21,9 +21,9 @@ int main(int agrc, char* argv[]) {
     //TODO: it needs to get the remaining time from somewhere
     remainingtime = atoi(argv[1]);
     while(remainingtime>0) {
-       sleep(1);
-       remainingtime--;
         cout << "process: " << getpid() << "  " << remainingtime << endl;
+        sleep(1);
+        remainingtime--;
     }
     kill(getppid(), SIGUSR2);
     exit(getpid());

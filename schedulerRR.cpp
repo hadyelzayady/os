@@ -1,190 +1,182 @@
 #include "headers.h"
 #include "process.h.h"
-#include <sys/msg.h>
-#include <stdlib.h>
-#include <stdio.h>
 #include <iostream>
-#include <string>
+#include <fstream>
 #include <vector>
+#include <algorithm>
 #include <math.h>
-#include <iomanip>
+#include <iomanip>      // std::setprecision
 using namespace std;
-int pid; //should it be inside;
-int flag = 0;      //indication if there are other processes to send;
-int num = 0;
+
+bool compare(const process &lhs, const process &rhs) {
+    return lhs.remainTime > rhs.remainTime;
+}
+
+ofstream scheduler_log("scheduler.log");
+vector<process> ps;
+int start_exec_time = 0;
+int quantum;
+int current_quantum;
+bool flag = true;// if process generator have procs to send ,flag is true
+void run_next() {
+    if (ps.empty())
+        return;
+    process &p = ps[0];
+    start_exec_time = getClk();
+    p.waitingTime += getClk() - p.stop;
+    current_quantum = min(quantum, p.remainTime);
+    if (p.status == firstRun) {
+        key_t pid = fork();
+        if (pid == 0)//child
+        {
+            execl("./process.out", "process.out", to_string(p.runTime).c_str(), (char *) 0);
+        } else {
+            alarm(current_quantum);
+            scheduler_log << "At time " << getClk() << " process " << p.id << " started arr " << p.arrival << " Total "
+                          << p.runTime << " remain " << p.remainTime << " wait " << p.waitingTime << endl;
+            p.pid = pid;
+        }
+    } else {
+        alarm(current_quantum);
+        scheduler_log << "At time " << getClk() << " process " << p.id << " resumed arr " << p.arrival << " Total "
+                      << p.runTime << " remain " << p.remainTime << " wait " << p.waitingTime << endl;
+        cerr << "continue process:" << p.id;
+        kill(p.pid, SIGCONT);//continue the process
+    }
+    p.status = running;
+}
+
+int TotalRT = 0;
+double WTASum = 0;
+int WaitintSum = 0;
+vector<double> WTAS;
+
+void remove_process(int) {
+    int stat_loc;
+    int pid_wait = wait(&stat_loc);
+    if (WIFEXITED(stat_loc))//exit code form child 1
+    {
+        process &p = ps[0];
+        TotalRT += p.runTime;
+        WTAS.push_back((double) (getClk() - p.arrival) / p.runTime);
+        scheduler_log << fixed << setprecision(2) << "At time " << getClk() << " process " << p.id << " finished arr "
+                      << p.arrival << " Total "
+                      << p.runTime << " remain 0" << " wait " << p.waitingTime << " TA " << getClk() - p.arrival
+                      << " WTA " << ((getClk() - p.arrival) / (double) p.runTime) << endl;
+        WTASum += (double) (getClk() - p.arrival) / p.runTime;
+        WaitintSum += p.waitingTime;
+        cout << "exit process with arrival:" << ps[0].arrival << " and id " << ps[0].id << " TA "
+             << getClk() - p.arrival << " WTA " << (double) (getClk() - p.arrival) / p.runTime << endl;
+        ps.erase(ps.begin());
+        run_next();
+
+    }
+}
+
+bool stop_current() {
+    process p = ps[0];
+    p.remainTime -= current_quantum;
+    if (p.remainTime != 0) {
+
+        ps.erase(ps.begin());
+        p.status = waiting;
+        p.stop = getClk();
+        ps.push_back(p);
+        scheduler_log << "At time " << getClk() << " process " << p.id << " stopped arr " << p.arrival << " Total "
+                      << p.runTime << " remain " << p.remainTime << " wait " << p.waitingTime << endl;
+        cout << "stop process: " << p.id << endl;
+        kill(p.pid, SIGSTOP);
+        return false;// process no finished
+    }
+    return true;//process is finished
+
+
+}
+
+void exec_next(int) {
+    if (!stop_current()) {
+        run_next();
+    }
+
+}
+
 void changeflag(int) {
-    flag = 1;
+    flag = false;
 }
 
-
-vector<process> proctable;   //process table;
-vector<float> wta;           //weighted turn around;
-vector<int> wt;//waiting time;
-
-int rt = 0;  //all runtimes;
-
-int findind(int pid) {
-    for (int i = 0; i < proctable.size(); i++) {
-        if (proctable[i].pid == pid) return i;
-    }
-    return -1;
-}
-
-
-void chgstatus(int pid, bool type)  //type=0--->run else waiting
-{
-    int place = findind(pid);
-    if (!type) proctable[place].status = running;
-    else proctable[place].status = waiting;
-}
-
-void chgtime()    //decrease remaining time || increase waiting time
-{
-    for (int i = 0; i < proctable.size(); i++) {
-        if (proctable[i].status == running) proctable[i].remainTime--;
-        else proctable[i].waitingTime++;
-    }
+void write_log(int) {
 
 }
-
-void procfinished(int) {
-    int st;
-    int pid = wait(&st);
-    int place = findind(pid);
-    rt += proctable[place].runTime;
-    wt.push_back(proctable[place].waitingTime);
-    wta.push_back(proctable[place].waitingTime / proctable[place].runTime);
-    num++;
-    proctable.erase(proctable.begin() + place);
-
-
-}
-
-
 
 int main(int argc, char *argv[]) {
-    sleep(1);
     initClk();
-    int time;
-    float uti;
-    time = getClk();
-    int prevtime = time;
-    signal(SIGUSR2, procfinished);
+    int countofProc = 0;
+    int rec_val = -1;
+    key_t rdyq = msgget(1, 0644);
+    key_t pid;
+    int current_rt;
+    int i = 0;
+    quantum = atoi(argv[1]);
+    signal(SIGUSR2, remove_process);
     signal(SIGUSR1, changeflag);
-    cout << "Hello from sch" << endl;
-    int stat;   //status of receiving from process generator;
-    int quantum = atoi(argv[1]);  //constant qtm;
-    cout << "Qntm " << quantum << endl;
-    int qtm = 0;        //actual qtm;
-    int remstat = 1;   //process needs another quantum?
-
-    int rdyq;
-    string remtime;
-    struct process message;
-
-    //sleep(1.5);
-
-    //TODO: implement the scheduler :)
-
-    rdyq = msgget(1, 0644 | IPC_CREAT);
-
-    while (1)    //another check should be done related to quantum (running variable)
-    {
-
-        time = getClk();
-        if (qtm == 0) {
-            qtm = quantum;
-            remstat = 1;
-            if (flag == 1) {
-                int stat1 = msgrcv(rdyq, &message, sizeof(message) - sizeof(long), 0, IPC_NOWAIT);
-                //cout<<"Flag="<<flag<<" stat="<<stat1<<endl;
-                if (stat1 == -1) break;
-            }
-            if (flag == 0) {//cout<<"Sch before 2"<<endl;
-                stat = msgrcv(rdyq, &message, sizeof(message) - sizeof(long), 0,
-                              IPC_NOWAIT);   //should it be IPC_NOWAIT?;
-            }
-            if (stat == -1) qtm = 0;
-            //and here
-            if (stat != -1) {
-                cout << "Time " << time << " process " << message.id << " RT " << message.runTime << " rem " << remstat
-                     << endl;
-                if (message.runTime <= quantum) {
-                    qtm = message.runTime;
-                    remstat = 0;
-
-                    cout << "Anti Riri" << endl;
-                }
-
-
-                if (message.status == firstRun) //running for first time;
+    signal(SIGALRM, exec_next);
+    int prevclk = 0;//to start loop firt time
+    while (flag || rec_val != -1) {
+        process p;
+        rec_val = (int) msgrcv(rdyq, &p, sizeof(process) - sizeof(long), 0, !IPC_NOWAIT);
+        if (rec_val != -1) {
+            p.remainTime = p.runTime;
+            p.waitingTime = 0;
+            countofProc++;
+            if (ps.empty())//remaining time,= as I do not know if sorting will put it in the back or before back
+            {
+                p.status = running;//running
+                pid = fork();
+                if (pid != 0)//scheduler
                 {
-                    pid = fork();
-                    if (pid == 0) {
-                        remtime = std::to_string(message.runTime);
-                        execl("./process.out", "process.out", remtime.c_str(), NULL);  //child=process
-                    }
-                    message.pid = pid;//parent
-                    message.execTime = getClk();
-                    message.waitingTime = message.arrival - getClk();
-                    proctable.push_back(message);
+                    start_exec_time = getClk();
+                    p.pid = pid;
+                    current_quantum = min(quantum, p.runTime);
+                    alarm(current_quantum);
+                    ps.push_back(p);
+                    scheduler_log << "At time " << getClk() << " process " << p.id << " started arr " << p.arrival
+                                  << " Total " << p.runTime << " remain " << p.remainTime << " wait 0" << endl;
 
-                    if (remstat != 0) {
-
-                        message.status = running;
-                        chgstatus(message.pid, 0);
-
-                    }
                 } else {
-                    chgstatus(message.pid, 0);
-                    cout << " Running p " << message.id << " at time " << time << " qtm " << qtm << endl;
-                    kill(message.pid, SIGCONT);
 
+                    execl("./process.out", "process.out", to_string(p.runTime).c_str(), (char *) 0);
                 }
+
+            } else {
+                p.stop = getClk();
+                p.status = firstRun;//not run yes;
+                ps.push_back(p);
 
             }
-        } else {   //cout<<"prev "<<prevtime<<endl;
-            if (stat != -1) {    //here   //qtm!=0 -----> process running;
-                if (prevtime != time) {   //cout<<"the else"<<endl;
-                    chgtime();
-                    qtm--;
-                    cout << "qtm " << qtm << endl;
-                    prevtime = time;
-                }
-                if (qtm == 0 && remstat != 0) {
-                    cout << "sch will send at time " << time << endl;
-                    message.status = waiting;
-                    chgstatus(message.pid, 1);
-                    message.runTime -= quantum;
-                    int y = msgsnd(rdyq, &message, sizeof(message) - sizeof(long), !IPC_NOWAIT);
-                    cout << "send stat " << y << "process " << message.id << endl;
-                    kill(message.pid, SIGSTOP);
-                }
-            }      //here
+
+
         }
-
-
-    }                 //while(1) bracket;
-    cout << "bye sch" << endl;
-    double clck = (double) getClk();
-    uti = (double) rt / clck;
-    uti = round(uti * 100) / 100;
-    uti = uti * 100;     //utilization percentage;
-    float avwta = 0;
-    float avwt = 0;
-    for (int i = 0; i < wta.size(); i++) {
-        avwt += wt[i];
-        avwta += wta[i];
     }
 
-    avwt = avwt / (float) num;
-    avwt = round(avwt * 100) / 100;    //avg waiting;
-    avwta = avwta / (float) num;
-    avwta = round(avwta * 100) / 100;  //average turnaround
+    while (!ps.empty()) {}
+    scheduler_log.close();
+    ofstream scheduler_perform("scheduler.perf");
+    double AWTA = (double) WTASum / countofProc;
+    cout << AWTA;
+    scheduler_perform << "CPU utilization=" << fixed << setprecision(2) << ((double) TotalRT / getClk()) * 100 << "%"
+                      << endl << "Avg WTA = " << AWTA << endl
+                      << "Avg Waiting= " << (double) WaitintSum / countofProc << endl;
+    double sum = 0;
+    for (int j = 0; j < WTAS.size(); ++j) {
+        sum += (WTAS[i] - AWTA) * (WTAS[i] - AWTA);
+    }
 
-    destroyClk(true);
-    exit(0);
+    scheduler_perform << "Std WTA=" << sqrt((double) sum / countofProc);
+    scheduler_perform.close();
+    destroyClk(false);
     //upon termination release clock
+//    of.close();
+    exit(0);
 
 
 }

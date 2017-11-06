@@ -6,7 +6,6 @@
 #include "Functions.h"
 #include <sys/msg.h>
 #include <string>
-#include <algorithm>
 using namespace std;
 void ClearResources(int);
 
@@ -18,6 +17,7 @@ void send(int) {
 
 }
 key_t rdyq;
+
 int main() {
 //
 
@@ -38,8 +38,7 @@ int main() {
         }
     }
     signal(SIGINT, ClearResources);
-//    signal(SIGCHLD, ClearResources);
-    signal(SIGURG, send);
+    signal(SIGCHLD, ClearResources);
     rdyq = msgget(1, 0644 | IPC_CREAT);       //initializing ready queue;
     int pidclk = fork();
     if (pidclk == 0) {
@@ -70,27 +69,23 @@ int main() {
     int x = getClk();
     printf("current time is %d\n", x);
     vector<process> processesData;
-    int firstArriveIndex = 0;
     readFile(processesData);
-    int clk = getClk();
-    sort(processesData.begin(), processesData.end(), compare);
+    int firstArriveIndex = 0;
     while (firstArriveIndex < processesData.size()) {
-        clk = getClk();
         while (firstArriveIndex < processesData.size() &&
-               processesData[firstArriveIndex].arrival <= clk) {
-
+               processesData[firstArriveIndex].arrival <= getClk()) {
             int send = msgsnd(rdyq, &processesData[firstArriveIndex],
                               sizeof(process) - sizeof(long),
                               !IPC_NOWAIT);
-
-//            cerr << getClk() << endl;
-//            cerr << "sent\n";
+            cerr << processesData[firstArriveIndex].id << endl;
+            cerr << getClk() << endl;
             if (send == -1)
                 cout << "error in sending\n";
             firstArriveIndex++;
 
         }
     }
+
 
     kill(pidsch, SIGUSR1);
     while (1) {}
