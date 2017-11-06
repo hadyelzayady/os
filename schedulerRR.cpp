@@ -6,8 +6,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <math.h>
+#include <fstream>
 #include <iomanip>
+#include <math.h>
+
 using namespace std;
 int pid; //should it be inside;
 int flag = 0;      //indication if there are other processes to send;
@@ -20,6 +22,7 @@ void changeflag(int) {
 vector<process> proctable;   //process table;
 vector<float> wta;           //weighted turn around;
 vector<int> wt;//waiting time;
+ofstream scheduler_log("scheduler.log");
 
 int rt = 0;  //all runtimes;
 
@@ -35,14 +38,24 @@ void chgstatus(int pid, bool type)  //type=0--->run else waiting
 {
     int place = findind(pid);
     if (!type) proctable[place].status = running;
-    else proctable[place].status = waiting;
+    else {
+        proctable[place].status = waiting;
+        proctable[place].waitingTime = -1 * proctable[place].waitingTime;
+    }
 }
 
 void chgtime()    //decrease remaining time || increase waiting time
-{
+{    //cout<<"chg "<<getClk()<<"size "<<proctable.size()<<endl;
     for (int i = 0; i < proctable.size(); i++) {
-        if (proctable[i].status == running) proctable[i].remainTime--;
-        else proctable[i].waitingTime++;
+        //cout<<"id "<<proctable[i].id<<endl;
+        if (proctable[i].status == running) {
+            proctable[i].remainTime--;
+            if (proctable[i].remainTime < 0) proctable[i].remainTime = 0;
+            //cout<<"id rem "<<proctable[i].id<<endl;
+        } else {
+            proctable[i].waitingTime++;
+            //cout<<proctable[i].id<<"is waiting"<<proctable[i].waitingTime<<endl;
+        }
     }
 
 }
@@ -51,9 +64,16 @@ void procfinished(int) {
     int st;
     int pid = wait(&st);
     int place = findind(pid);
+    if (proctable[place].waitingTime < 0) proctable[place].waitingTime = -1 * proctable[place].waitingTime;
+    scheduler_log << fixed << setprecision(2) << "At time " << getClk() << " process " << proctable[place].id
+                  << " Finished arr " << proctable[place].arrival << " Total "
+                  << proctable[place].runTime << " remain " << proctable[place].remainTime << " wait "
+                  << proctable[place].waitingTime << " TA " << getClk() - proctable[place].arrival << " WTA "
+                  << ((getClk() - proctable[place].arrival) / ((double) proctable[place].runTime)) << endl;
+
     rt += proctable[place].runTime;
     wt.push_back(proctable[place].waitingTime);
-    wta.push_back(proctable[place].waitingTime / proctable[place].runTime);
+    wta.push_back(((getClk() - proctable[place].arrival) / ((double) proctable[place].runTime)));
     num++;
     proctable.erase(proctable.begin() + place);
 
@@ -63,7 +83,7 @@ void procfinished(int) {
 
 
 int main(int argc, char *argv[]) {
-    sleep(1);
+    // sleep(1);
     initClk();
     int time;
     float uti;
@@ -77,10 +97,12 @@ int main(int argc, char *argv[]) {
     cout << "Qntm " << quantum << endl;
     int qtm = 0;        //actual qtm;
     int remstat = 1;   //process needs another quantum?
-
+    int cnt;    //count used for synchronization
+    int ts;     //T switch;
     int rdyq;
     string remtime;
     struct process message;
+
 
     //sleep(1.5);
 
@@ -93,7 +115,10 @@ int main(int argc, char *argv[]) {
 
         time = getClk();
         if (qtm == 0) {
+            ts = time;
+
             qtm = quantum;
+            cnt = qtm;
             remstat = 1;
             if (flag == 1) {
                 int stat1 = msgrcv(rdyq, &message, sizeof(message) - sizeof(long), 0, IPC_NOWAIT);
@@ -109,8 +134,9 @@ int main(int argc, char *argv[]) {
             if (stat != -1) {
                 cout << "Time " << time << " process " << message.id << " RT " << message.runTime << " rem " << remstat
                      << endl;
-                if (message.runTime <= quantum) {
-                    qtm = message.runTime;
+                if (message.remainTime <= quantum) {
+                    qtm = message.remainTime;
+                    cnt = qtm;
                     remstat = 0;
 
                     cout << "Anti Riri" << endl;
@@ -128,7 +154,11 @@ int main(int argc, char *argv[]) {
                     message.execTime = getClk();
                     message.waitingTime = message.arrival - getClk();
                     proctable.push_back(message);
-
+                    scheduler_log << "At time " << getClk() << " process " << message.id << " started arr "
+                                  << message.arrival << " Total "
+                                  << message.runTime << " remain " << message.runTime << " wait "
+                                  << getClk() - message.arrival << endl;
+                    chgstatus(message.pid, 0);
                     if (remstat != 0) {
 
                         message.status = running;
@@ -136,7 +166,13 @@ int main(int argc, char *argv[]) {
 
                     }
                 } else {
+                    message.status = running;
                     chgstatus(message.pid, 0);
+                    scheduler_log << "At time " << getClk() << " process " << message.id << " resumed arr  "
+                                  << message.arrival << " Total "
+                                  << message.runTime << " remain " << message.remainTime << " wait "
+                                  << proctable[findind(message.pid)].waitingTime << endl;
+
                     cout << " Running p " << message.id << " at time " << time << " qtm " << qtm << endl;
                     kill(message.pid, SIGCONT);
 
@@ -150,12 +186,20 @@ int main(int argc, char *argv[]) {
                     qtm--;
                     cout << "qtm " << qtm << endl;
                     prevtime = time;
+                    while (getClk() < ts + cnt && qtm == 0) {}
                 }
+
                 if (qtm == 0 && remstat != 0) {
+
                     cout << "sch will send at time " << time << endl;
                     message.status = waiting;
                     chgstatus(message.pid, 1);
-                    message.runTime -= quantum;
+                    message.remainTime -= quantum;
+                    scheduler_log << "At time " << getClk() << " process " << message.id << " stopped arr "
+                                  << message.arrival << " Total "
+                                  << message.runTime << " remain " << message.remainTime << " wait "
+                                  << proctable[findind(message.pid)].waitingTime << endl;
+
                     int y = msgsnd(rdyq, &message, sizeof(message) - sizeof(long), !IPC_NOWAIT);
                     cout << "send stat " << y << "process " << message.id << endl;
                     kill(message.pid, SIGSTOP);
@@ -166,9 +210,11 @@ int main(int argc, char *argv[]) {
 
     }                 //while(1) bracket;
     cout << "bye sch" << endl;
+    sleep(1);
+    ofstream scheduler_perform("scheduler_perform.txt");
     double clck = (double) getClk();
     uti = (double) rt / clck;
-    uti = round(uti * 100) / 100;
+    //uti = round(uti * 100) / 100;
     uti = uti * 100;     //utilization percentage;
     float avwta = 0;
     float avwt = 0;
@@ -178,10 +224,24 @@ int main(int argc, char *argv[]) {
     }
 
     avwt = avwt / (float) num;
-    avwt = round(avwt * 100) / 100;    //avg waiting;
+    //avwt = round(avwt * 100) / 100;    //avg waiting;
     avwta = avwta / (float) num;
-    avwta = round(avwta * 100) / 100;  //average turnaround
+    //avwta = round(avwta * 100) / 100;  //average turnaround
+    float mid = 0;  //intermediate term;
+    for (int i = 0; i < wta.size(); i++) {
+        mid += (wta[i] - avwta) * (wta[i] - avwta);
+    }
 
+    scheduler_log.close();
+
+    float stdv = sqrt(mid / (float) num);
+    //stdv=round(stdv*100)/100;
+
+    scheduler_perform << fixed << setprecision(2) << "CPU utilization=" << uti << endl << "Avg WTA = " << avwta << endl
+                      << "Avg Waiting= " << avwt << endl << "Std WTA=" << stdv << endl;
+
+
+    scheduler_perform.close();
     destroyClk(true);
     exit(0);
     //upon termination release clock

@@ -52,7 +52,7 @@ void remove_process(int) {
     {
         process &p = ps.back();
         TotalRT += p.runTime;
-        WTAS.push_back((double) round((((double) (getClk() - p.arrival) / p.runTime) * 100)) / 100);
+        WTAS.push_back((double) (getClk() - p.arrival) / p.runTime);
         scheduler_log << fixed << setprecision(2) << "At time " << getClk() << " process " << p.id << " finished arr "
                       << p.arrival << " Total "
                       << p.runTime << " remain 0" << " wait " << p.waitingTime << " TA " << getClk() - p.arrival
@@ -106,12 +106,16 @@ int main(int argc, char* argv[]) {
             p.remainTime = p.runTime;
             p.waitingTime = 0;
             countofProc++;
-            cerr << "\nreceived\n" << getClk();/*<<p.runTime<<"  rem time in orev:"<<(getClk() - start_exec_time)*/;
             if (!ps.empty()) {
                 process &current_proc = ps.back();
+                cerr << "current rt:" << current_proc.id << endl << "start exec time" << start_exec_time << endl
+                     << getClk();
                 current_proc.remainTime = ps.back().remainTime - (getClk() - start_exec_time);
+                start_exec_time = getClk();
             }
-            if (ps.empty() || p.remainTime <=
+            cerr << "\nreceived\n" << p.id
+                 << p.runTime;/*<<p.runTime<<"  rem time in orev:"<<(getClk() - start_exec_time)*/;
+            if (ps.empty() || p.remainTime <
                               ps.back().remainTime)//remaining time,= as I do not know if sorting will put it in the back or before back
             {
                 p.status = running;//running
